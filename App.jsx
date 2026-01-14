@@ -6,7 +6,7 @@ import {
   Calendar,
   Users,
   Leaf,
-  Handshake,
+  HeartHandshake, // Usamos este en lugar de Handshake
   BadgeCheck,
   ClipboardList,
   FileText,
@@ -16,11 +16,10 @@ import {
   Send,
   ChevronLeft,
   ChevronRight,
-  MessageSquareText,
+  MessageSquare, // Usamos este en lugar de MessageSquareText
   Building2,
   BadgeInfo,
   Sparkles,
-  HeartHandshake,
   GraduationCap,
   Factory,
   TrendingUp,
@@ -534,7 +533,7 @@ export default function App() {
     { key: "portfolio", label: "Productos", icon: Leaf },
     { key: "matriz", label: "Matriz", icon: Calendar },
     { key: "interv", label: "Interv.", icon: ClipboardList },
-    { key: "sinergias", label: "Sinergias", icon: Handshake },
+    { key: "sinergias", label: "Sinergias", icon: HeartHandshake }, // Cambiado
     { key: "charlas", label: "Charlas", icon: Users },
     { key: "sello", label: "Sello", icon: BadgeCheck },
     { key: "servicios", label: "Servicios", icon: Leaf },
@@ -776,7 +775,7 @@ export default function App() {
         {/* Cierre motivante */}
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
           <div className="flex items-center gap-2">
-            <MessageSquareText className="h-5 w-5 text-emerald-700" />
+            <MessageSquare className="h-5 w-5 text-emerald-700" /> {/* Cambiado */}
             <div className="font-black text-slate-900">Objetivo de esta encuesta</div>
           </div>
           <p className="mt-3 text-slate-700">
@@ -1240,7 +1239,7 @@ export default function App() {
     return (
       <Card>
         <SectionHeader
-          icon={Handshake}
+          icon={HeartHandshake} // Cambiado
           title="Bloque 5 — Sinergias (técnicas y comerciales)"
           subtitle="Objetivo: diseñar acciones conjuntas concretas que sumen demanda, mejoren eficiencia y potencien soluciones integrales."
         />
