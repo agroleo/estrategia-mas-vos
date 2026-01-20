@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   ShieldCheck,
   Star,
@@ -25,16 +25,18 @@ import {
   TrendingUp,
   MapPin,
   Shield,
+  Save,
 } from "lucide-react";
 
 /**
- * ✅ VERSIÓN FINAL - FIX DE FOCO:
- * - Se eliminó la definición de componentes internos (CurrentStepComponent).
- * - Se usa una función render simple para mantener el árbol de React estable.
- * - Esto soluciona definitivamente el problema de perder el foco al escribir.
+ * ✅ VERSIÓN FINAL - CON AUTO-GUARDADO (PERSISTENCIA):
+ * - Se agregó LocalStorage para guardar el avance automáticamente.
+ * - Si el usuario cierra la pestaña o recarga, NO pierde los datos.
+ * - Se agregó botón para borrar datos y empezar de cero.
  */
 
 const WHATSAPP_NUMBER = "3515173310";
+const STORAGE_KEY = "estrategia_vos_data_v1"; // Clave para guardar en el navegador
 
 // ---------- Helpers & Constantes ----------
 
@@ -115,11 +117,12 @@ const pickWithOther = (arr, otherValue) => {
 // ---------- Componentes UI (Estables) ----------
 
 const Container = ({ children, toast }) => (
-  <div className="min-h-screen bg-slate-50 text-slate-800">
+  <div className="min-h-screen bg-slate-50 text-slate-800 pb-20">
     {children}
     {toast ? (
       <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50">
-        <div className="rounded-full bg-slate-900 text-white px-5 py-3 text-sm font-black shadow-xl animate-bounce">
+        <div className="rounded-full bg-slate-900 text-white px-5 py-3 text-sm font-black shadow-xl animate-bounce flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
           {toast}
         </div>
       </div>
@@ -134,7 +137,7 @@ const Card = ({ children, className = "" }) => (
 );
 
 const SectionHeader = ({ icon: Icon, title, subtitle, right }) => (
-  <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-3">
+  <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-start justify-between gap-4">
     <div className="flex items-center gap-3">
       <div className="h-11 w-11 rounded-2xl bg-emerald-700 text-white flex flex-shrink-0 items-center justify-center shadow-sm">
         <Icon className="h-6 w-6" />
@@ -1305,9 +1308,9 @@ const StepFinal = ({ data, update, sendToWhatsApp, resetAll }) => (
         <button
           type="button"
           onClick={resetAll}
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
+          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50 hover:text-red-600 hover:border-red-100 transition-colors"
         >
-          <Trash2 className="h-4 w-4" /> Reiniciar
+          <Trash2 className="h-4 w-4" /> Borrar datos y reiniciar
         </button>
         <button
           type="button"
@@ -1364,7 +1367,23 @@ export default function App() {
     vision3Anios: "",
   };
 
-  const [data, setData] = useState(initialData);
+  // Carga inicial con persistencia
+  const [data, setData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Error cargando datos", e);
+    }
+    return initialData;
+  });
+
+  // Guardado automático cada vez que cambia 'data'
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }, [data]);
 
   const showToastFn = (msg) => {
     setToast(msg);
@@ -1386,9 +1405,10 @@ export default function App() {
     setData((d) => ({ ...d, [field]: d[field].filter((_, i) => i !== idx) }));
 
   const resetAll = () => {
-    if (confirm("¿Borrar todo el formulario?")) {
+    if (confirm("¿Estás seguro de BORRAR TODOS los datos guardados y empezar de cero?")) {
       setData(initialData);
       setStep(0);
+      localStorage.removeItem(STORAGE_KEY); // Borrar también de memoria
       showToastFn("Formulario reiniciado.");
     }
   };
@@ -1412,6 +1432,7 @@ export default function App() {
     lines.push(`Objs: ${objetivos.join(", ") || "—"}`);
     lines.push(`KPIs: ${data.kpis || "—"}`);
     lines.push("");
+
     lines.push("*2. PORTFOLIO*");
     data.portfolio.forEach((p, i) => {
       if (!isFilled(p.producto)) return;
@@ -1419,6 +1440,7 @@ export default function App() {
       lines.push(`   Foco: ${p.cultivosObjetivo} | Dif: ${p.diferencial}`);
     });
     lines.push("");
+
     lines.push("*3. MATRIZ TÉCNICA*");
     data.matrizTecnica.forEach((r, i) => {
       if (!isFilled(r.cultivo)) return;
@@ -1426,6 +1448,7 @@ export default function App() {
       lines.push(`   Sol: ${r.solucion} (${r.formato})`);
     });
     lines.push("");
+
     lines.push("*4. INTERVENCIONES*");
     data.intervenciones.forEach((r, i) => {
       if (!isFilled(r.cultivo)) return;
@@ -1434,6 +1457,7 @@ export default function App() {
       lines.push(`   Prod: ${r.producto} | Formato: ${r.formato}`);
     });
     lines.push("");
+
     lines.push("*5. SINERGIAS*");
     lines.push(`Tec: ${sinergiasTec.join(", ")}`);
     data.combosTecnicos.forEach((c, i) => {
@@ -1443,6 +1467,7 @@ export default function App() {
     lines.push(`Com: ${sinergiasCom.join(", ")}`);
     if (data.sinergiasComercialesNotas) lines.push(`Notas: ${data.sinergiasComercialesNotas}`);
     lines.push("");
+
     lines.push("*6. CHARLAS*");
     data.participacionCharlas.forEach((p) => {
       if (p.interes === "Sí" || p.rol !== "A evaluar") {
@@ -1451,15 +1476,29 @@ export default function App() {
       }
     });
     lines.push("");
+
     lines.push("*7. SELLO +VOS*");
-    lines.push(`Aporta: ${data.aporteProductos}`);
-    lines.push(`Necesita: ${data.necesitaRequisitosValidacion}`);
+    lines.push("*Aporta:*");
+    lines.push(`Prod: ${data.aporteProductos || "—"}`);
+    lines.push(`Evid: ${data.aporteEvidencias || "—"}`);
+    lines.push(`Ind: ${indicadores.join(", ") || "—"}`);
+    lines.push(`Cond: ${data.condicionesLimites || "—"}`);
+    lines.push("*Necesita:*");
+    lines.push(`Req: ${data.necesitaRequisitosValidacion || "—"}`);
+    lines.push(`Aud: ${data.necesitaAuditoriaRegistro || "—"}`);
+    lines.push(`Marca: ${data.necesitaUsoMarcaSello || "—"}`);
+    lines.push(`Valor: ${data.necesitaValorEsperado || "—"}`);
     lines.push("");
-    lines.push("*8. CIERRE*");
-    lines.push(`Espera: ${data.esperaRecibir}`);
-    lines.push(`Aporta: ${data.dispuestoAportar}`);
-    lines.push(`Compromiso: ${data.compromiso}`);
-    lines.push(`Visión: ${data.vision3Anios}`);
+
+    lines.push("*8. SERVICIOS*");
+    lines.push(`${servicios.join(", ") || "—"}`);
+    lines.push("");
+
+    lines.push("*9. CIERRE*");
+    lines.push(`Espera: ${data.esperaRecibir || "—"}`);
+    lines.push(`Aporta: ${data.dispuestoAportar || "—"}`);
+    lines.push(`Compromiso: ${data.compromiso || "—"}`);
+    lines.push(`Visión: ${data.vision3Anios || "—"}`);
 
     return lines.join("\n");
   };
@@ -1488,6 +1527,22 @@ export default function App() {
     { key: "servicios", label: "Servicios", icon: Leaf },
     { key: "final", label: "Final", icon: Send },
   ];
+
+  const renderStepContent = () => {
+    switch (stepsList[step].key) {
+      case "intro": return <StepIntro />;
+      case "perfil": return <StepPerfil data={data} update={update} />;
+      case "portfolio": return <StepPortfolio data={data} updateCard={updateCard} addCard={addCard} removeCard={removeCard} showToast={showToastFn} />;
+      case "matriz": return <StepMatriz data={data} updateCard={updateCard} addCard={addCard} removeCard={removeCard} showToast={showToastFn} />;
+      case "interv": return <StepIntervenciones data={data} updateCard={updateCard} addCard={addCard} removeCard={removeCard} showToast={showToastFn} />;
+      case "sinergias": return <StepSinergias data={data} update={update} updateCard={updateCard} addCard={addCard} removeCard={removeCard} showToast={showToastFn} />;
+      case "charlas": return <StepCharlas data={data} updateCard={updateCard} />;
+      case "sello": return <StepSello data={data} update={update} />;
+      case "servicios": return <StepServicios data={data} update={update} />;
+      case "final": return <StepFinal data={data} update={update} sendToWhatsApp={sendToWhatsApp} resetAll={resetAll} />;
+      default: return <StepIntro />;
+    }
+  };
 
   const canPrev = step > 0;
   const canNext = step < stepsList.length - 1;
@@ -1560,22 +1615,6 @@ export default function App() {
       </div>
     </div>
   );
-
-  const renderStepContent = () => {
-    switch (stepsList[step].key) {
-      case "intro": return <StepIntro />;
-      case "perfil": return <StepPerfil data={data} update={update} />;
-      case "portfolio": return <StepPortfolio data={data} updateCard={updateCard} addCard={addCard} removeCard={removeCard} showToast={showToastFn} />;
-      case "matriz": return <StepMatriz data={data} updateCard={updateCard} addCard={addCard} removeCard={removeCard} showToast={showToastFn} />;
-      case "interv": return <StepIntervenciones data={data} updateCard={updateCard} addCard={addCard} removeCard={removeCard} showToast={showToastFn} />;
-      case "sinergias": return <StepSinergias data={data} update={update} updateCard={updateCard} addCard={addCard} removeCard={removeCard} showToast={showToastFn} />;
-      case "charlas": return <StepCharlas data={data} updateCard={updateCard} />;
-      case "sello": return <StepSello data={data} update={update} />;
-      case "servicios": return <StepServicios data={data} update={update} />;
-      case "final": return <StepFinal data={data} update={update} sendToWhatsApp={sendToWhatsApp} resetAll={resetAll} />;
-      default: return <StepIntro />;
-    }
-  };
 
   return (
     <Container toast={toast}>
